@@ -1,51 +1,63 @@
 import json
+import logging
+import time
 from dataclasses import dataclass
+from enum import Enum
 from typing import List
+
+logging.basicConfig(level=logging.INFO)
+
+class PolicyStatus(Enum):
+    PENDING = 1
+    APPLIED = 2
+    FAILED = 3
+
+@dataclass
+class Cluster:
+    name: str
+    url: str
 
 @dataclass
 class Policy:
-    name: str
-    rules: List[str]
+    id: int
+    content: str
 
-class ControlPlane:
+class Meshcraft:
     def __init__(self):
-        self.policies = []
         self.clusters = []
+        self.policies = []
+        self.propagation_attempts = 0
 
-    def define_policy(self, policy: Policy):
+    def add_cluster(self, cluster: Cluster):
+        self.clusters.append(cluster)
+
+    def create_policy(self, policy: Policy):
         self.policies.append(policy)
+        self.propagate_policy(policy)
 
-    def add_cluster(self, cluster_name: str):
-        self.clusters.append(cluster_name)
-
-    def propagate_policies(self):
+    def propagate_policy(self, policy: Policy):
         for cluster in self.clusters:
-            print(f"Propagating policies to cluster {cluster}")
-            for policy in self.policies:
-                print(f"Applying policy {policy.name} to cluster {cluster}")
+            self.apply_policy(cluster, policy)
 
-    def validate_policy(self, policy: Policy):
-        if not policy.name or not policy.rules:
-            raise ValueError("Policy must have a name and rules")
-        return True
+    def apply_policy(self, cluster: Cluster, policy: Policy):
+        try:
+            # Simulate policy application
+            time.sleep(1)
+            logging.info(f"Applied policy {policy.id} to cluster {cluster.name}")
+            return PolicyStatus.APPLIED
+        except Exception as e:
+            logging.error(f"Failed to apply policy {policy.id} to cluster {cluster.name}: {str(e)}")
+            self.propagation_attempts += 1
+            if self.propagation_attempts < 5:
+                # Retry with exponential back-off
+                time.sleep(2 ** self.propagation_attempts)
+                return self.apply_policy(cluster, policy)
+            else:
+                self.propagation_attempts = 0  # Reset attempts after failure
+                raise Exception("Policy application failed after retries")
 
-    def enforce_policy(self, policy: Policy, cluster_name: str):
-        if cluster_name not in self.clusters:
-            raise ValueError("Cluster not found")
-        print(f"Enforcing policy {policy.name} on cluster {cluster_name}")
-
-    def report_errors(self):
-        print("No errors reported")
-
-def main():
-    control_plane = ControlPlane()
-    policy = Policy("test_policy", ["rule1", "rule2"])
-    control_plane.define_policy(policy)
-    control_plane.add_cluster("test_cluster")
-    control_plane.propagate_policies()
-    control_plane.validate_policy(policy)
-    control_plane.enforce_policy(policy, "test_cluster")
-    control_plane.report_errors()
-
-if __name__ == "__main__":
-    main()
+    def get_policy_status(self, policy_id: int):
+        for policy in self.policies:
+            if policy.id == policy_id:
+                return policy
+        return None

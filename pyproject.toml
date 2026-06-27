@@ -5,7 +5,7 @@ build-backend = "poetry.masonry.api"
 [tool.poetry]
 name = "meshcraft"
 version = "0.1.0"
-description = ""
+description = "Meshcraft project"
 
 [tool.poetry.dependencies]
 python = "^3.8"
